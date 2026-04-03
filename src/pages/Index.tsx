@@ -48,6 +48,12 @@ const Index = () => {
     });
   }, [activeTab]);
 
+  const handleContentChange = useCallback((path: string, content: string) => {
+    setOpenTabs((prev) =>
+      prev.map((t) => (t.path === path ? { ...t, content } : t))
+    );
+  }, []);
+
   return (
     <div className="flex h-screen flex-col">
       {/* Title bar */}
@@ -82,6 +88,7 @@ const Index = () => {
             activeTab={activeTab}
             onTabSelect={setActiveTab}
             onTabClose={handleTabClose}
+            onContentChange={handleContentChange}
           />
         </ResizablePanel>
 
