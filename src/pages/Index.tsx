@@ -88,6 +88,7 @@ const Index = () => {
             activeTab={activeTab}
             onTabSelect={setActiveTab}
             onTabClose={handleTabClose}
+            onContentChange={handleContentChange}
           />
         </ResizablePanel>
 
