@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { FileTree, FileNode } from "@/components/ide/FileTree";
 import { CodeEditor } from "@/components/ide/CodeEditor";
+import { TerminalPanel } from "@/components/ide/TerminalPanel";
 import { AiChat } from "@/components/ide/AiChat";
 import { sampleFiles } from "@/components/ide/sampleFiles";
 import { Code2, Sparkles } from "lucide-react";
