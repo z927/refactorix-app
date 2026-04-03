@@ -84,13 +84,18 @@ const Index = () => {
 
         {/* Code Editor */}
         <ResizablePanel defaultSize={52} minSize={30}>
-          <CodeEditor
-            openTabs={openTabs}
-            activeTab={activeTab}
-            onTabSelect={setActiveTab}
-            onTabClose={handleTabClose}
-            onContentChange={handleContentChange}
-          />
+          <div className="flex flex-col h-full">
+            <div className="flex-1 overflow-hidden">
+              <CodeEditor
+                openTabs={openTabs}
+                activeTab={activeTab}
+                onTabSelect={setActiveTab}
+                onTabClose={handleTabClose}
+                onContentChange={handleContentChange}
+              />
+            </div>
+            <TerminalPanel />
+          </div>
         </ResizablePanel>
 
         <ResizableHandle className="w-px bg-border hover:bg-primary/50 transition-colors" />
