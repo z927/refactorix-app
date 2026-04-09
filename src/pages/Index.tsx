@@ -1,111 +1,35 @@
-import { useState, useCallback } from "react";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { FileTree, FileNode } from "@/components/ide/FileTree";
-import { CodeEditor } from "@/components/ide/CodeEditor";
-import { TerminalPanel } from "@/components/ide/TerminalPanel";
-import { AiChat } from "@/components/ide/AiChat";
-import { sampleFiles } from "@/components/ide/sampleFiles";
-import { Code2, Sparkles } from "lucide-react";
+import { BuilderHeader } from "@/components/project-builder/BuilderHeader";
+import { BuilderStatusPanel } from "@/components/project-builder/BuilderStatusPanel";
+import { ProjectBuilderForm } from "@/components/project-builder/ProjectBuilderForm";
+import { useProjectBuilderForm } from "@/hooks/use-project-builder-form";
 
-interface OpenTab {
-  name: string;
-  path: string;
-  content: string;
-  language?: string;
-}
+const quickMetrics = [
+  { label: "Template pronti", value: "4" },
+  { label: "Stack supportati", value: "4" },
+  { label: "Workflow", value: "Guidato" },
+];
 
 const Index = () => {
-  const [openTabs, setOpenTabs] = useState<OpenTab[]>([]);
-  const [activeTab, setActiveTab] = useState<string | null>(null);
-  const [selectedPath, setSelectedPath] = useState<string | undefined>();
-
-  const handleFileSelect = useCallback((file: FileNode, path: string) => {
-    if (file.type !== "file") return;
-    setSelectedPath(path);
-
-    const existingTab = openTabs.find((t) => t.path === path);
-    if (existingTab) {
-      setActiveTab(path);
-      return;
-    }
-
-    const newTab: OpenTab = {
-      name: file.name,
-      path,
-      content: file.content || "",
-      language: file.language,
-    };
-    setOpenTabs((prev) => [...prev, newTab]);
-    setActiveTab(path);
-  }, [openTabs]);
-
-  const handleTabClose = useCallback((path: string) => {
-    setOpenTabs((prev) => {
-      const filtered = prev.filter((t) => t.path !== path);
-      if (activeTab === path) {
-        setActiveTab(filtered.length > 0 ? filtered[filtered.length - 1].path : null);
-      }
-      return filtered;
-    });
-  }, [activeTab]);
-
-  const handleContentChange = useCallback((path: string, content: string) => {
-    setOpenTabs((prev) =>
-      prev.map((t) => (t.path === path ? { ...t, content } : t))
-    );
-  }, []);
+  const { values, actions } = useProjectBuilderForm();
 
   return (
-    <div className="flex h-screen flex-col">
-      {/* Title bar */}
-      <div className="flex h-10 items-center justify-between border-b border-border bg-ide-header px-4">
-        <div className="flex items-center gap-2">
-          <Code2 className="h-5 w-5 text-primary" />
-          <span className="text-sm font-bold text-foreground">SmartCode IDE</span>
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#182556,#060b1e_55%)] px-4 py-8 text-slate-100 sm:px-8">
+      <section className="mx-auto w-full max-w-7xl space-y-6 rounded-3xl border border-white/10 bg-[linear-gradient(180deg,rgba(16,27,63,0.92),rgba(6,12,34,0.96))] p-5 shadow-[0_20px_80px_rgba(0,0,0,0.45)] sm:p-8">
+        <BuilderHeader />
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          {quickMetrics.map((item) => (
+            <article key={item.label} className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <p className="text-xs uppercase tracking-wider text-slate-400">{item.label}</p>
+              <p className="mt-1 text-2xl font-semibold text-white">{item.value}</p>
+            </article>
+          ))}
         </div>
-        <div className="flex items-center gap-1.5">
-          <Sparkles className="h-3.5 w-3.5 text-accent" />
-          <span className="text-xs text-muted-foreground">AI-Powered</span>
-        </div>
-      </div>
 
-      {/* Main content */}
-      <ResizablePanelGroup direction="horizontal" className="flex-1">
-        {/* File Tree */}
-        <ResizablePanel defaultSize={18} minSize={12} maxSize={30}>
-          <FileTree
-            files={sampleFiles}
-            onFileSelect={handleFileSelect}
-            selectedPath={selectedPath}
-          />
-        </ResizablePanel>
-
-        <ResizableHandle className="w-px bg-border hover:bg-primary/50 transition-colors" />
-
-        {/* Code Editor */}
-        <ResizablePanel defaultSize={52} minSize={30}>
-          <div className="flex flex-col h-full">
-            <div className="flex-1 overflow-hidden">
-              <CodeEditor
-                openTabs={openTabs}
-                activeTab={activeTab}
-                onTabSelect={setActiveTab}
-                onTabClose={handleTabClose}
-                onContentChange={handleContentChange}
-              />
-            </div>
-            <TerminalPanel />
-          </div>
-        </ResizablePanel>
-
-        <ResizableHandle className="w-px bg-border hover:bg-primary/50 transition-colors" />
-
-        {/* AI Chat */}
-        <ResizablePanel defaultSize={30} minSize={20} maxSize={45}>
-          <AiChat />
-        </ResizablePanel>
-      </ResizablePanelGroup>
-    </div>
+        <BuilderStatusPanel model={values.model} onModelChange={actions.setModel} />
+        <ProjectBuilderForm values={values} actions={actions} />
+      </section>
+    </main>
   );
 };
 
