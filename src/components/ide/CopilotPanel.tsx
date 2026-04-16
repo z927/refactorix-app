@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { featureFlags } from "@/config/featureFlags";
+import { getConfiguredApiBaseUrl, setRuntimeApiBaseUrl } from "@/config/runtime-config";
 import { useCopilotStore } from "@/features/copilot/store";
 import type { CopilotMode, SessionRole } from "@/features/copilot/types";
 
@@ -8,6 +9,13 @@ const roleOptions: SessionRole[] = ["guest", "operator", "reviewer", "admin"];
 
 export const CopilotPanel = () => {
   const { state, selectedPatch, initialize, setField, submit, toggleHunk, acceptAll, rejectAll, sendFeedback } = useCopilotStore();
+
+  const [apiBaseUrl, setApiBaseUrl] = useState(() => getConfiguredApiBaseUrl());
+
+  const handleApiBaseUrlSave = () => {
+    const normalized = setRuntimeApiBaseUrl(apiBaseUrl);
+    setApiBaseUrl(normalized);
+  };
 
   useEffect(() => {
     initialize().catch(() => undefined);
@@ -35,6 +43,20 @@ export const CopilotPanel = () => {
           className="w-full rounded border border-border bg-background p-2"
           placeholder="Repo path"
         />
+
+        <div className="space-y-2">
+          <label className="text-xs text-muted-foreground">Copilot API base URL</label>
+          <div className="flex gap-2">
+            <input
+              value={apiBaseUrl}
+              onChange={(e) => setApiBaseUrl(e.target.value)}
+              className="w-full rounded border border-border bg-background p-2"
+              placeholder="https://copilot.example.com"
+            />
+            <button onClick={handleApiBaseUrlSave} className="rounded border border-border px-3 py-2 text-xs">Save</button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">Attivo: {getConfiguredApiBaseUrl() || "relative path"}</p>
+        </div>
 
         <div className="grid grid-cols-2 gap-2">
           <select value={state.mode} onChange={(e) => setField("mode", e.target.value)} className="rounded border border-border bg-background p-2">
