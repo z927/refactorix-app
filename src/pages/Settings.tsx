@@ -6,10 +6,11 @@ const Settings = () => {
   const initial = useMemo(() => loadCopilotSettings(), []);
   const [apiBaseUrl, setApiBaseUrl] = useState(initial.apiBaseUrl ?? "");
   const [apiToken, setApiToken] = useState(initial.apiToken ?? "");
+  const [apiKey, setApiKey] = useState(initial.apiKey ?? "");
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
-    saveCopilotSettings({ apiBaseUrl, apiToken });
+    saveCopilotSettings({ apiBaseUrl, apiToken, apiKey });
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   };
@@ -40,6 +41,16 @@ const Settings = () => {
               onChange={(e) => setApiToken(e.target.value)}
               className="w-full rounded border border-white/15 bg-[#111] px-3 py-2 text-sm"
               placeholder="sk-..."
+              type="password"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-slate-300">Copilot API Key (x-api-key)</label>
+            <input
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              className="w-full rounded border border-white/15 bg-[#111] px-3 py-2 text-sm"
+              placeholder="api-key-..."
               type="password"
             />
           </div>

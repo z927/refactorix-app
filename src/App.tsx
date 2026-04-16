@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound.tsx";
 import ProjectViewer from "./pages/ProjectViewer.tsx";
 import Documents from "./pages/Documents.tsx";
 import Settings from "./pages/Settings.tsx";
+import ApiCatalog from "./pages/ApiCatalog.tsx";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/app" element={<Navigate to="/" replace />} />
           <Route path="/documenti" element={<Documents />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/api-catalog" element={<ApiCatalog />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -1,6 +1,7 @@
 export interface CopilotSettings {
   apiBaseUrl?: string;
   apiToken?: string;
+  apiKey?: string;
 }
 
 export const COPILOT_SETTINGS_STORAGE_KEY = "copilot_settings";
@@ -22,6 +23,7 @@ const normalizeToken = (value?: string): string | undefined => {
 const sanitizeSettings = (value: Partial<CopilotSettings>): CopilotSettings => ({
   apiBaseUrl: normalizeUrl(value.apiBaseUrl),
   apiToken: normalizeToken(value.apiToken),
+  apiKey: normalizeToken(value.apiKey),
 });
 
 export const loadCopilotSettings = (): CopilotSettings => {
@@ -50,3 +52,5 @@ export const saveCopilotSettings = (next: Partial<CopilotSettings>): CopilotSett
 
 export const getCopilotApiBaseUrl = (): string | undefined => loadCopilotSettings().apiBaseUrl;
 export const getCopilotApiToken = (): string | undefined => loadCopilotSettings().apiToken;
+
+export const getCopilotApiKey = (): string | undefined => loadCopilotSettings().apiKey;

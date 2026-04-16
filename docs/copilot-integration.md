@@ -10,6 +10,11 @@
 
 - Copilot API Token: configurabile da `/settings`, inviato come header `Authorization: Bearer <token>`.
 
+## API Catalog UI
+
+- Pagina `/api-catalog`: invoca endpoint Existing/Recommended (metodo/path/query/pathParams/body).
+- Usa `src/features/copilot/catalog-client.ts` per routing dinamico su endpoint OpenAPI esistenti e fallback raw fetch per endpoint recommended/mancanti.
+
 ## Endpoint matrix
 
 ### Core run flow

@@ -5,6 +5,7 @@ const topLinks = [
   { label: "Codice", to: "/codice" },
   { label: "App", to: "/app" },
   { label: "Documenti", to: "/documenti" },
+  { label: "API", to: "/api-catalog" },
 ];
 
 export const BuilderHeader = () => {
