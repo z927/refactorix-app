@@ -1,6 +1,7 @@
 const { app, BrowserWindow, shell, ipcMain } = require('electron');
 const path = require('path');
 const { wireUpdater, checkForUpdates, downloadUpdate, quitAndInstall } = require('./updater.cjs');
+const { handleWindowOpen, shouldOpenExternally, isSameAppOrigin } = require('./navigation.cjs');
 
 const isDev = !app.isPackaged;
 const DEV_SERVER_URL = process.env.ELECTRON_RENDERER_URL || 'http://localhost:5173';
@@ -21,6 +22,8 @@ function createWindow() {
     },
   });
 
+  const appEntry = isDev ? DEV_SERVER_URL : 'file://';
+
   if (isDev) {
     mainWindow.loadURL(DEV_SERVER_URL);
     mainWindow.webContents.openDevTools({ mode: 'detach' });
@@ -28,9 +31,20 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
   }
 
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
-    return { action: 'deny' };
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => handleWindowOpen(url, appEntry, shell.openExternal));
+
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (isSameAppOrigin(url, appEntry)) {
+      return;
+    }
+
+    if (shouldOpenExternally(url, appEntry)) {
+      event.preventDefault();
+      shell.openExternal(url);
+      return;
+    }
+
+    event.preventDefault();
   });
 
   wireUpdater(mainWindow);

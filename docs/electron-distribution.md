@@ -58,7 +58,9 @@ Il progetto include `hardenedRuntime` ed entitlements (`electron/entitlements.ma
 - `contextIsolation: true`
 - `nodeIntegration: false`
 - `sandbox: true`
-- Apertura link esterni tramite `shell.openExternal` con `setWindowOpenHandler` (popup bloccati nell'app).
+- Link interni (`localhost` in dev, `file://` in prod) consentiti in-app.
+- Link esterni sicuri (`http/https/mailto`) aperti con `shell.openExternal`.
+- Protocolli non sicuri bloccati.
 
 ## Packaging
 
