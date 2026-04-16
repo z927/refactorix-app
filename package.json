@@ -16,7 +16,10 @@
     "electron:pack": "vite build && electron-builder --dir",
     "postinstall": "electron-builder install-app-deps",
     "start:core": "vite",
-    "start:desktop": "npm run electron:dev"
+    "start:desktop": "npm run electron:dev",
+    "check:conflicts": "node scripts/check-conflicts.mjs",
+    "prebuild": "npm run check:conflicts",
+    "pretest": "npm run check:conflicts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

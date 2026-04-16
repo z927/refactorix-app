@@ -57,7 +57,6 @@
 5. **No KPI updates**
    - Ensure `POST /v1/ide/feedback` succeeds.
    - Refresh via `GET /v1/ide/analytics`.
-<<<<<<< codex/integrate-copilot-into-smart-ide
 
 
 ## Troubleshooting rapido connessione
@@ -66,5 +65,4 @@
   - su pagina HTTPS con API HTTP: probable mixed-content block.
   - endpoint raggiungibile in `no-cors` ma fallisce in fetch normale: probabile CORS backend.
   - altrimenti: verifica rete/VPN/firewall e bind host/porta API.
-=======
->>>>>>> main
+

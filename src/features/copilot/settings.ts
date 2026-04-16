@@ -76,20 +76,18 @@ const buildAuthHeaders = (settings: CopilotSettings): HeadersInit => ({
 });
 
 const probe = async (baseUrl: string, endpoint: string, headers: HeadersInit): Promise<CopilotConnectionProbe> => {
-<<<<<<< codex/integrate-copilot-into-smart-ide
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), probeTimeoutMs);
 
-=======
->>>>>>> main
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), probeTimeoutMs);
+
   try {
     const response = await fetch(`${baseUrl}${endpoint}`, {
       method: "GET",
       headers,
-<<<<<<< codex/integrate-copilot-into-smart-ide
       signal: controller.signal,
-=======
->>>>>>> main
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -108,7 +106,6 @@ const probe = async (baseUrl: string, endpoint: string, headers: HeadersInit): P
       message: "OK",
     };
   } catch (error) {
-<<<<<<< codex/integrate-copilot-into-smart-ide
     const rawMessage = error instanceof Error ? error.message : "Network error";
     const message = await classifyNetworkError(baseUrl, endpoint, rawMessage);
 
@@ -119,13 +116,6 @@ const probe = async (baseUrl: string, endpoint: string, headers: HeadersInit): P
     };
   } finally {
     clearTimeout(timeout);
-=======
-    return {
-      endpoint,
-      ok: false,
-      message: error instanceof Error ? error.message : "Network error",
-    };
->>>>>>> main
   }
 };
 
