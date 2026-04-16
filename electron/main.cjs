@@ -1,5 +1,6 @@
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, shell, ipcMain } = require('electron');
 const path = require('path');
+const { wireUpdater, checkForUpdates, downloadUpdate, quitAndInstall } = require('./updater.cjs');
 
 const isDev = !app.isPackaged;
 const DEV_SERVER_URL = process.env.ELECTRON_RENDERER_URL || 'http://localhost:5173';
@@ -31,10 +32,36 @@ function createWindow() {
     shell.openExternal(url);
     return { action: 'deny' };
   });
+
+  wireUpdater(mainWindow);
+
+  return mainWindow;
 }
 
 app.whenReady().then(() => {
-  createWindow();
+  const mainWindow = createWindow();
+
+  ipcMain.handle('updater:check', async () => {
+    await checkForUpdates();
+    return { ok: true };
+  });
+
+  ipcMain.handle('updater:download', async () => {
+    await downloadUpdate();
+    return { ok: true };
+  });
+
+  ipcMain.handle('updater:quit-and-install', async () => {
+    quitAndInstall();
+    return { ok: true };
+  });
+
+  if (!isDev) {
+    setTimeout(() => {
+      mainWindow.webContents.send('updater:event', { type: 'checking-for-update' });
+      checkForUpdates();
+    }, 10_000);
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

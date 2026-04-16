@@ -66,3 +66,6 @@ npm run electron:build
 ```
 
 Gli artefatti vengono generati in `release/`.
+
+Per configurare branding (icone), code signing e auto-update consulta: `docs/electron-distribution.md` (icone binarie generate in CI da `assets/icons/icon-template.svg`).
+
