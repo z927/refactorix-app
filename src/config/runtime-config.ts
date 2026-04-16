@@ -1,4 +1,6 @@
-const API_BASE_URL_STORAGE_KEY = "copilot_api_base_url";
+import { COPILOT_STORAGE_KEYS } from "@/features/copilot/constants";
+
+const API_BASE_URL_STORAGE_KEY = COPILOT_STORAGE_KEYS.apiBaseUrl;
 
 const isBrowser = typeof window !== "undefined";
 

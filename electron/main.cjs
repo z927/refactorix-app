@@ -2,17 +2,18 @@ const { app, BrowserWindow, shell, ipcMain } = require('electron');
 const path = require('path');
 const { wireUpdater, checkForUpdates, downloadUpdate, quitAndInstall } = require('./updater.cjs');
 const { handleWindowOpen, shouldOpenExternally, isSameAppOrigin } = require('./navigation.cjs');
+const { electronConfig } = require('./config.cjs');
 
 const isDev = !app.isPackaged;
-const DEV_SERVER_URL = process.env.ELECTRON_RENDERER_URL || 'http://localhost:5173';
+const DEV_SERVER_URL = electronConfig.devServerUrl;
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
-    width: 1440,
-    height: 900,
-    minWidth: 1024,
-    minHeight: 700,
-    backgroundColor: '#171717',
+    width: electronConfig.window.width,
+    height: electronConfig.window.height,
+    minWidth: electronConfig.window.minWidth,
+    minHeight: electronConfig.window.minHeight,
+    backgroundColor: electronConfig.window.backgroundColor,
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -74,7 +75,7 @@ app.whenReady().then(() => {
     setTimeout(() => {
       mainWindow.webContents.send('updater:event', { type: 'checking-for-update' });
       checkForUpdates();
-    }, 10_000);
+    }, electronConfig.updater.checkDelayMs);
   }
 
   app.on('activate', () => {

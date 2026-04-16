@@ -2,10 +2,7 @@ import { useEffect, useState } from "react";
 import { featureFlags } from "@/config/featureFlags";
 import { getConfiguredApiBaseUrl, setRuntimeApiBaseUrl } from "@/config/runtime-config";
 import { useCopilotStore } from "@/features/copilot/store";
-import type { CopilotMode, SessionRole } from "@/features/copilot/types";
-
-const modeOptions: CopilotMode[] = ["analyze", "dry_run", "apply_patch", "commit"];
-const roleOptions: SessionRole[] = ["guest", "operator", "reviewer", "admin"];
+import { COPILOT_MODE_OPTIONS, COPILOT_ROLE_OPTIONS } from "@/features/copilot/constants";
 
 export const CopilotPanel = () => {
   const { state, selectedPatch, initialize, setField, submit, toggleHunk, acceptAll, rejectAll, sendFeedback } = useCopilotStore();
@@ -60,7 +57,7 @@ export const CopilotPanel = () => {
 
         <div className="grid grid-cols-2 gap-2">
           <select value={state.mode} onChange={(e) => setField("mode", e.target.value)} className="rounded border border-border bg-background p-2">
-            {modeOptions.map((mode) => (
+            {COPILOT_MODE_OPTIONS.map((mode) => (
               <option
                 key={mode}
                 value={mode}
@@ -72,7 +69,7 @@ export const CopilotPanel = () => {
           </select>
 
           <select value={state.role} onChange={(e) => setField("role", e.target.value)} className="rounded border border-border bg-background p-2">
-            {roleOptions.map((role) => (
+            {COPILOT_ROLE_OPTIONS.map((role) => (
               <option key={role} value={role}>{role}</option>
             ))}
           </select>

@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useReducer } from "react";
 import { copilotClient } from "./client";
 import { canRunMode, isHighRiskMode } from "./rbac";
+import { COPILOT_DEFAULTS } from "./constants";
 import type {
   AuditEvent,
   CopilotMode,
@@ -46,8 +47,8 @@ const defaultState: CopilotState = {
   machineState: "idle",
   mode: "analyze",
   task: "",
-  repo: ".",
-  role: "operator",
+  repo: COPILOT_DEFAULTS.repo,
+  role: COPILOT_DEFAULTS.role,
   runs: [],
   hunks: [],
   endpointHealth: { ollama: "unknown", qdrant: "unknown", temporal: "unknown" },
@@ -122,7 +123,7 @@ const reducer = (state: CopilotState, action: CopilotAction): CopilotState => {
     case "ERROR":
       return { ...state, machineState: "failed", error: action.error };
     case "AUDIT":
-      return { ...state, auditTrail: [action.event, ...state.auditTrail].slice(0, 100) };
+      return { ...state, auditTrail: [action.event, ...state.auditTrail].slice(0, COPILOT_DEFAULTS.auditTrailLimit) };
     default:
       return state;
   }
@@ -191,7 +192,7 @@ export const useCopilotStore = () => {
         dispatch({ type: "STREAMING", runId });
 
         let completed = false;
-        for (let i = 0; i < 20 && !completed; i += 1) {
+        for (let i = 0; i < COPILOT_DEFAULTS.pollMaxAttempts && !completed; i += 1) {
           const run = await copilotClient.getRun(runId);
           const runState = String(run.state ?? "queued");
           if (runState === "ok" || runState === "failed") {
@@ -203,7 +204,7 @@ export const useCopilotStore = () => {
             dispatch({ type: "SET_HUNKS", hunks: parseDiffHunks(patch) });
             break;
           }
-          await new Promise((resolve) => setTimeout(resolve, 1200));
+          await new Promise((resolve) => setTimeout(resolve, COPILOT_DEFAULTS.pollIntervalMs));
         }
 
         if (!completed) {

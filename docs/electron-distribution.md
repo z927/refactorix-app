@@ -12,6 +12,17 @@ L'utente finale installa direttamente il pacchetto (`.dmg`, `.exe`, `.AppImage`)
 
 ## Architettura
 
+## Runtime config (no hardcoded window/updater)
+
+Variabili opzionali:
+
+- `SMARTIDE_ELECTRON_DEV_SERVER_URL`
+- `SMARTIDE_WINDOW_WIDTH` / `SMARTIDE_WINDOW_HEIGHT`
+- `SMARTIDE_WINDOW_MIN_WIDTH` / `SMARTIDE_WINDOW_MIN_HEIGHT`
+- `SMARTIDE_WINDOW_BACKGROUND`
+- `SMARTIDE_UPDATER_CHECK_DELAY_MS`
+
+
 - Main process: `electron/main.cjs`
 - Preload script: `electron/preload.cjs`
 - Updater module: `electron/updater.cjs`
@@ -21,8 +32,8 @@ L'utente finale installa direttamente il pacchetto (`.dmg`, `.exe`, `.AppImage`)
 
 - In repository è versionato `assets/icons/icon-template.svg` (text-only).
 - Le icone binarie (`.png/.ico/.icns`) vanno generate in CI/CD prima della fase di packaging.
-- Publisher Windows (`publisherName`): `Smart IDE S.r.l.`
-- Author npm package: `Smart IDE Team <devops@smartide.local>`
+- Publisher Windows via env `SMARTIDE_PUBLISHER` (usato in `electron-builder`).
+- Author package via env `SMARTIDE_AUTHOR`.
 
 ## Code signing
 
@@ -50,7 +61,7 @@ Il progetto include `hardenedRuntime` ed entitlements (`electron/entitlements.ma
 ## Auto-update
 
 - Integrato con `electron-updater`.
-- Provider configurato: `generic` URL `https://updates.smartide.local/downloads`.
+- Provider configurato via env `SMARTIDE_UPDATE_URL` (electron-builder publish generic).
 - Eventi update esposti al renderer via `window.desktop.updater` (`check`, `download`, `quitAndInstall`, `onEvent`).
 
 ## Sicurezza

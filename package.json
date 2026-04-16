@@ -129,7 +129,7 @@
       "target": [
         "nsis"
       ],
-      "publisherName": "Smart IDE S.r.l.",
+      "publisherName": "${env.SMARTIDE_PUBLISHER}",
       "signingHashAlgorithms": [
         "sha256"
       ],
@@ -145,7 +145,7 @@
     "publish": [
       {
         "provider": "generic",
-        "url": "https://updates.smartide.local/downloads"
+        "url": "${env.SMARTIDE_UPDATE_URL}"
       }
     ],
     "nsis": {
@@ -155,6 +155,6 @@
       "createDesktopShortcut": true
     }
   },
-  "author": "Smart IDE Team <devops@smartide.local>",
+  "author": "${env.SMARTIDE_AUTHOR}",
   "description": "Smart IDE desktop application with integrated Copilot workflows."
 }
