@@ -49,8 +49,10 @@ cd refactorix
 # Initialize core modules
 npm install
 
-# Execute the architect
+# Execute the architect (web)
 npm run start:core
+# oppure equivalente
+npm run dev
 ```
 
 ## 🖥️ Desktop Standalone (Electron)
@@ -59,6 +61,8 @@ Smart IDE può essere distribuito come applicazione desktop installabile senza r
 
 ```bash
 # Sviluppo desktop (Vite + Electron)
+npm run start:desktop
+# oppure equivalente
 npm run electron:dev
 
 # Build installer desktop per il sistema corrente

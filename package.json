@@ -14,7 +14,9 @@
     "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron .\"",
     "electron:build": "vite build && electron-builder",
     "electron:pack": "vite build && electron-builder --dir",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "start:core": "vite",
+    "start:desktop": "npm run electron:dev"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

@@ -5,7 +5,8 @@ L'utente finale installa direttamente il pacchetto (`.dmg`, `.exe`, `.AppImage`)
 
 ## Comandi
 
-- `npm run electron:dev`: avvia Vite + Electron in sviluppo locale.
+- `npm run start:desktop`: alias consigliato per avviare Vite + Electron in sviluppo locale.
+- `npm run electron:dev`: comando equivalente.
 - `npm run electron:pack`: genera output non installabile (cartella `release/`).
 - `npm run electron:build`: build completa + installer per OS corrente.
 
