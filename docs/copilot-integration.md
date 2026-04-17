@@ -18,10 +18,10 @@
 
 ## Token lifecycle automatico
 
-- `apiKey` usata solo per bootstrap iniziale sessione (`/v1/auth/token`).
+- `apiKey` usata solo per bootstrap iniziale sessione (`/v1/auth/session/token`).
 - `access token` usato per chiamate API.
 - Refresh automatico proattivo vicino alla scadenza e retry al primo `401`.
-- `refresh token` tentato su `/v1/auth/token/refresh` con fallback bootstrap se disponibile apiKey.
+- `refresh token` tentato su `/v1/auth/session/refresh` con fallback bootstrap se disponibile apiKey.
 
 ## API Catalog UI
 

@@ -13,21 +13,36 @@ describe("auth session", () => {
   });
 
   it("bootstraps and persists access token", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "abc", expires_in: 300 }), { status: 200 }));
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "abc", expires_in: 300 }), { status: 200 }));
 
     const session = await bootstrapAuthSession();
 
     expect(session?.accessToken).toBe("abc");
     expect(loadAuthSession()?.accessToken).toBe("abc");
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://localhost:8000/v1/auth/session/token",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({ "x-api-key": "key" }),
+        body: JSON.stringify({ role: "operator", subject: "smart-ide" }),
+      }),
+    );
   });
 
   it("refreshes after unauthorized", async () => {
     saveAuthSession({ accessToken: "old", refreshToken: "refresh", tokenType: "Bearer", expiresAt: Date.now() - 1000 });
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "new", refresh_token: "new-r", expires_in: 300 }), { status: 200 }));
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "new", refresh_token: "new-r", expires_in: 300 }), { status: 200 }));
 
     const token = await refreshAfterUnauthorized();
 
     expect(token).toBe("new");
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://localhost:8000/v1/auth/session/refresh",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ refresh_token: "refresh" }),
+      }),
+    );
   });
 
   it("returns current valid token without refresh", async () => {

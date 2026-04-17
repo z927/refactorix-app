@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { loadCopilotSettings, probeCopilotConnection, saveCopilotSettings } from "@/features/copilot/settings";
-import { bootstrapAuthSession, clearAuthSession, loadAuthSession, refreshAuthSession } from "@/features/copilot/auth-session";
+import { bootstrapAuthSession, clearAuthSession, getValidAccessToken, loadAuthSession, refreshAuthSession } from "@/features/copilot/auth-session";
 
 const Settings = () => {
   const initial = useMemo(() => loadCopilotSettings(), []);
@@ -24,10 +24,19 @@ const Settings = () => {
   };
 
   const handleConnectionTest = async () => {
+    const savedSettings = saveCopilotSettings({ apiBaseUrl, apiToken, apiKey, bootstrapRole, bootstrapSubject });
+    const sessionToken = await getValidAccessToken();
+    const session = loadAuthSession();
+    setSessionInfo(session);
+
     setIsTestingConnection(true);
     setConnectionResult("Testing...");
 
-    const result = await probeCopilotConnection({ apiBaseUrl, apiToken, apiKey });
+    const result = await probeCopilotConnection({
+      apiBaseUrl: savedSettings.apiBaseUrl,
+      apiKey: savedSettings.apiKey,
+      apiToken: sessionToken ?? savedSettings.apiToken,
+    });
     const lines = [
       `Base URL: ${result.baseUrl ?? "(invalid)"}`,
       ...result.probes.map((probe) => `${probe.ok ? "✅" : "❌"} ${probe.endpoint} · ${probe.message}${probe.status ? ` (${probe.status})` : ""}`),
@@ -101,7 +110,9 @@ const Settings = () => {
         <div className="mt-6 rounded border border-white/10 bg-[#111] p-3 text-xs">
           <div className="mb-2 font-medium text-slate-200">Sessione automatica token</div>
           <div className="mb-2 text-slate-300">
-            {sessionInfo ? `Access token attivo${sessionInfo.expiresAt ? ` · scade: ${new Date(sessionInfo.expiresAt).toLocaleString()}` : ""}` : "Nessuna sessione attiva"}
+            {sessionInfo
+              ? `Access token attivo${sessionInfo.expiresAt ? ` · scade: ${new Date(sessionInfo.expiresAt).toLocaleString()}` : ""} · refresh token: ${sessionInfo.refreshToken ? "presente" : "assente"}`
+              : "Nessuna sessione attiva"}
           </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={handleBootstrapSession} className="rounded border border-white/15 px-3 py-1.5 hover:bg-white/10">Avvia sessione (bootstrap)</button>

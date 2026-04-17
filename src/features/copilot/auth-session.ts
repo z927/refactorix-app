@@ -96,8 +96,14 @@ export const bootstrapAuthSession = async (): Promise<AuthSession | null> => {
 
   const payload = await requestWithHeaders(
     settings.apiBaseUrl,
-    `/v1/auth/token?role=${encodeURIComponent(settings.bootstrapRole ?? "operator")}&subject=${encodeURIComponent(settings.bootstrapSubject ?? "smart-ide")}`,
-    { method: "POST" },
+    "/v1/auth/session/token",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        role: settings.bootstrapRole ?? "operator",
+        subject: settings.bootstrapSubject ?? "smart-ide",
+      }),
+    },
     { "x-api-key": settings.apiKey },
   );
 
@@ -115,7 +121,7 @@ export const refreshAuthSession = async (): Promise<AuthSession | null> => {
     try {
       const payload = await requestWithHeaders(
         settings.apiBaseUrl,
-        "/v1/auth/token/refresh",
+        "/v1/auth/session/refresh",
         {
           method: "POST",
           body: JSON.stringify({ refresh_token: current.refreshToken }),
