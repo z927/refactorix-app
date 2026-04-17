@@ -20,9 +20,11 @@
 
 - `apiKey` usata solo per bootstrap iniziale sessione (`/v1/auth/session/token`).
 - Bootstrap usa `POST /v1/auth/session/token?role=...&subject=...` con header `x-api-key`.
+- In web UI è supportato fallback su `POST /v1/auth/session/login?...` con `credentials: include` (cookie-based session).
 - `access token` usato per chiamate API.
 - Refresh automatico proattivo vicino alla scadenza e retry al primo `401`.
 - `refresh token` tentato su `POST /v1/auth/session/refresh` via header `Authorization: Bearer <refreshToken>` con rotation.
+- Fallback refresh cookie-based su stesso endpoint con `credentials: include` (+ `x-csrf-token` se disponibile).
 
 ## API Catalog UI
 

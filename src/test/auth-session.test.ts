@@ -86,4 +86,33 @@ describe("auth session", () => {
     expect(session?.accessToken).toBe("nested-access");
     expect(session?.refreshToken).toBe("nested-refresh");
   });
+
+  it("falls back to /session/login when /session/token fails", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response("{}", { status: 401 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            accessToken: "login-access",
+            refreshToken: "login-refresh",
+            tokenType: "Bearer",
+            expiresIn: 7200,
+          }),
+          { status: 200 },
+        ),
+      );
+
+    const session = await bootstrapAuthSession();
+
+    expect(session?.accessToken).toBe("login-access");
+    expect(fetchSpy).toHaveBeenNthCalledWith(
+      2,
+      "http://localhost:8000/v1/auth/session/login?role=operator&subject=smart-ide",
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+      }),
+    );
+  });
 });

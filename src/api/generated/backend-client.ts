@@ -100,6 +100,7 @@ async function performRequest<T extends OperationId>(
 
   let response = await fetch(url, {
     method,
+    credentials: "include",
     signal: config?.signal,
     headers: buildHeaders(token ?? undefined),
     body: config?.body === undefined ? undefined : JSON.stringify(config.body),
@@ -110,6 +111,7 @@ async function performRequest<T extends OperationId>(
     if (refreshedToken) {
       response = await fetch(url, {
         method,
+        credentials: "include",
         signal: config?.signal,
         headers: buildHeaders(refreshedToken),
         body: config?.body === undefined ? undefined : JSON.stringify(config.body),

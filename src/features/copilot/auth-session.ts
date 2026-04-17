@@ -112,6 +112,12 @@ const requestWithHeaders = async (
   return (await response.json()) as Record<string, unknown>;
 };
 
+const getCsrfToken = (): string | undefined => {
+  if (!isBrowser) return undefined;
+  const match = document.cookie.match(/(?:^|;\s*)ae_csrf_token=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : undefined;
+};
+
 export const bootstrapAuthSession = async (): Promise<AuthSession | null> => {
   const settings = loadCopilotSettings();
   if (!settings.apiBaseUrl || !settings.apiKey) return null;
@@ -132,7 +138,23 @@ export const bootstrapAuthSession = async (): Promise<AuthSession | null> => {
       return session;
     }
   } catch {
-    throw new Error("Bootstrap sessione fallito: verifica endpoint /v1/auth/session/token e x-api-key.");
+    // fallback cookie-based login flow for web UI
+  }
+
+  try {
+    const payload = await requestWithHeaders(
+      settings.apiBaseUrl,
+      `/v1/auth/session/login?role=${encodeURIComponent(role)}&subject=${encodeURIComponent(subject)}`,
+      { method: "POST", credentials: "include" },
+      { "x-api-key": settings.apiKey },
+    );
+    const session = parseTokenResponse(payload);
+    if (session) {
+      saveAuthSession(session);
+      return session;
+    }
+  } catch {
+    throw new Error("Bootstrap sessione fallito: verifica endpoint /v1/auth/session/token o /v1/auth/session/login e x-api-key.");
   }
 
   return null;
@@ -161,6 +183,23 @@ export const refreshAuthSession = async (): Promise<AuthSession | null> => {
     } catch {
       // fallback bootstrap
     }
+  }
+
+  try {
+    const csrf = getCsrfToken();
+    const payload = await requestWithHeaders(
+      settings.apiBaseUrl,
+      "/v1/auth/session/refresh",
+      { method: "POST", credentials: "include" },
+      csrf ? { "x-csrf-token": csrf } : {},
+    );
+    const refreshed = parseTokenResponse(payload);
+    if (refreshed) {
+      saveAuthSession(refreshed);
+      return refreshed;
+    }
+  } catch {
+    // fallback bootstrap
   }
 
   return bootstrapAuthSession();
