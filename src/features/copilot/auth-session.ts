@@ -17,21 +17,34 @@ const isBrowser = typeof window !== "undefined";
 const now = () => Date.now();
 
 const parseTokenResponse = (payload: Record<string, unknown>): AuthSession | null => {
+  const asRecord = (value: unknown): Record<string, unknown> | null =>
+    value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+
+  const root = payload;
+  const nestedCandidates = [
+    asRecord(payload.session),
+    asRecord(payload.data),
+    asRecord(asRecord(payload.data)?.session),
+  ].filter((item): item is Record<string, unknown> => Boolean(item));
+
+  const readFirst = (keys: string[]): unknown => {
+    for (const key of keys) {
+      if (key in root) return root[key];
+      for (const nested of nestedCandidates) {
+        if (key in nested) return nested[key];
+      }
+    }
+    return undefined;
+  };
+
   const accessToken =
-    (payload.access_token as string | undefined) ??
-    (payload.token as string | undefined) ??
-    (payload.accessToken as string | undefined);
+    (readFirst(["access_token", "token", "accessToken"]) as string | undefined);
 
   if (!accessToken) return null;
 
-  const expiresIn =
-    (payload.expires_in as number | undefined) ??
-    (payload.expiresIn as number | undefined) ??
-    undefined;
+  const expiresIn = readFirst(["expires_in", "expiresIn"]) as number | undefined;
   const expiresAtRaw =
-    (payload.expires_at as string | number | undefined) ??
-    (payload.expiresAt as string | number | undefined) ??
-    undefined;
+    (readFirst(["expires_at", "expiresAt"]) as string | number | undefined);
   const expiresAtFromPayload =
     typeof expiresAtRaw === "number"
       ? expiresAtRaw
@@ -42,10 +55,9 @@ const parseTokenResponse = (payload: Record<string, unknown>): AuthSession | nul
   return {
     accessToken,
     refreshToken:
-      (payload.refresh_token as string | undefined) ??
-      (payload.refreshToken as string | undefined) ??
+      (readFirst(["refresh_token", "refreshToken"]) as string | undefined) ??
       undefined,
-    tokenType: (payload.token_type as string | undefined) ?? "Bearer",
+    tokenType: (readFirst(["token_type", "tokenType"]) as string | undefined) ?? "Bearer",
     expiresAt: Number.isFinite(expiresAtFromPayload) ? expiresAtFromPayload : expiresIn ? now() + expiresIn * 1000 : undefined,
   };
 };
@@ -120,7 +132,7 @@ export const bootstrapAuthSession = async (): Promise<AuthSession | null> => {
       return session;
     }
   } catch {
-    return null;
+    throw new Error("Bootstrap sessione fallito: verifica endpoint /v1/auth/session/token e x-api-key.");
   }
 
   return null;
@@ -158,7 +170,11 @@ export const getValidAccessToken = async (): Promise<string | null> => {
   let session = loadAuthSession();
 
   if (!session) {
-    session = await bootstrapAuthSession();
+    try {
+      session = await bootstrapAuthSession();
+    } catch {
+      return null;
+    }
   }
 
   if (shouldRefresh(session)) {
@@ -167,7 +183,11 @@ export const getValidAccessToken = async (): Promise<string | null> => {
         inFlightRefresh = null;
       });
     }
-    session = await inFlightRefresh;
+    try {
+      session = await inFlightRefresh;
+    } catch {
+      return null;
+    }
   }
 
   return session?.accessToken ?? null;
@@ -179,6 +199,11 @@ export const refreshAfterUnauthorized = async (): Promise<string | null> => {
       inFlightRefresh = null;
     });
   }
-  const session = await inFlightRefresh;
+  let session: AuthSession | null = null;
+  try {
+    session = await inFlightRefresh;
+  } catch {
+    return null;
+  }
   return session?.accessToken ?? null;
 };

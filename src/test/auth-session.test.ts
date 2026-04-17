@@ -63,4 +63,27 @@ describe("auth session", () => {
     expect(token).toBe("ok");
     clearAuthSession();
   });
+
+  it("parses token bundle when auth payload is nested", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          data: {
+            session: {
+              accessToken: "nested-access",
+              refreshToken: "nested-refresh",
+              tokenType: "Bearer",
+              expiresIn: 300,
+            },
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const session = await bootstrapAuthSession();
+
+    expect(session?.accessToken).toBe("nested-access");
+    expect(session?.refreshToken).toBe("nested-refresh");
+  });
 });
