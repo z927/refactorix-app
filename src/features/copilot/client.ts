@@ -1,6 +1,8 @@
 import { backendClient } from "@/api";
+import { ApiHttpError } from "@/api/generated/backend-client";
 import type { AIDevRequest, AIDevResponse, IDEFeedbackRequest } from "@/api";
 import type { CopilotMode, CopilotRunSummary, CopilotStructuredOutput, EndpointHealth } from "./types";
+import { copilotTelemetry } from "./telemetry";
 
 export class CopilotApiError extends Error {
   constructor(
@@ -16,11 +18,13 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const mapError = (error: unknown): CopilotApiError => {
   if (error instanceof CopilotApiError) return error;
-  const message = error instanceof Error ? error.message : "Unknown Copilot error";
 
-  if (message.includes("403")) {
-    return new CopilotApiError("Sessione non autorizzata", 403, "Riesegui login o aggiorna il token CSRF.");
+  if (error instanceof ApiHttpError) {
+    const baseMessage = error.status === 403 ? "Sessione non autorizzata" : error.message;
+    return new CopilotApiError(baseMessage, error.status, error.remediation ?? "Controlla i log backend e la connettività API.");
   }
+
+  const message = error instanceof Error ? error.message : "Unknown Copilot error";
 
   if (message.includes("429") || message.includes("503")) {
     return new CopilotApiError("Servizio temporaneamente non disponibile", undefined, "Riprova tra pochi secondi.");
@@ -56,6 +60,19 @@ const withRetry = async <T>(action: () => Promise<T>, maxRetries = 2): Promise<T
   }
 };
 
+
+const timed = async <T>(operation: string, action: () => Promise<T>): Promise<T> => {
+  const startedAt = performance.now();
+  try {
+    const result = await action();
+    copilotTelemetry.trackCall(operation, performance.now() - startedAt, true);
+    return result;
+  } catch (error) {
+    copilotTelemetry.trackCall(operation, performance.now() - startedAt, false);
+    throw error;
+  }
+};
+
 const normalizeOutput = (result: AIDevResponse | Record<string, unknown>): CopilotStructuredOutput => {
   const architecture = "architecture_analysis" in result ? result.architecture_analysis : {};
   const summary =
@@ -83,27 +100,38 @@ const normalizeOutput = (result: AIDevResponse | Record<string, unknown>): Copil
 
 export const copilotClient = {
   async runSync(payload: Pick<AIDevRequest, "task" | "repo" | "mode" | "commit_message" | "human_approved">) {
-    return withRetry(() => maybeRetryCsrf(() => backendClient.call("ai_dev_v1_v1_ai_dev_post", { body: payload })));
+    return timed("ai-dev.sync", async () => {
+      const result = await withRetry(() => maybeRetryCsrf(() => backendClient.call("ai_dev_v1_v1_ai_dev_post", { body: payload })));
+      copilotTelemetry.trackFunnelStep("analyze");
+      if (payload.mode === "dry_run") copilotTelemetry.trackFunnelStep("patch_generated");
+      if (payload.mode === "apply_patch") copilotTelemetry.trackFunnelStep("patch_applied");
+      if (payload.mode === "commit") copilotTelemetry.trackFunnelStep("commit");
+      return result;
+    });
   },
 
   async runAsync(payload: Pick<AIDevRequest, "task" | "repo" | "mode" | "commit_message" | "human_approved">) {
-    return withRetry(() => maybeRetryCsrf(() => backendClient.call("ai_dev_async_v1_ai_dev_async_post", { body: payload })));
+    return timed("ai-dev.async", async () => {
+      const result = await withRetry(() => maybeRetryCsrf(() => backendClient.call("ai_dev_async_v1_ai_dev_async_post", { body: payload })));
+      copilotTelemetry.trackFunnelStep("analyze");
+      return result;
+    });
   },
 
   async listRuns(limit = 10) {
-    return withRetry(() => backendClient.call("list_runs_v1_runs_get", { query: { limit } }));
+    return timed("runs.list", () => withRetry(() => backendClient.call("list_runs_v1_runs_get", { query: { limit } })));
   },
 
   async getRun(runId: string) {
-    return withRetry(() => backendClient.call("get_run_v1_runs__run_id__get", { pathParams: { run_id: runId } }));
+    return timed("runs.get", () => withRetry(() => backendClient.call("get_run_v1_runs__run_id__get", { pathParams: { run_id: runId } })));
   },
 
   async getRunResult(runId: string) {
-    return withRetry(() => backendClient.call("get_run_result_v1_runs__run_id__result_get", { pathParams: { run_id: runId } }));
+    return timed("runs.result", () => withRetry(() => backendClient.call("get_run_result_v1_runs__run_id__result_get", { pathParams: { run_id: runId } })));
   },
 
   async getRunEvents(runId: string) {
-    return withRetry(() => backendClient.call("run_events_v1_runs__run_id__events_get", { pathParams: { run_id: runId } }));
+    return timed("runs.events", () => withRetry(() => backendClient.call("run_events_v1_runs__run_id__events_get", { pathParams: { run_id: runId } })));
   },
 
   async getEndpointHealth(): Promise<EndpointHealth> {
@@ -124,14 +152,18 @@ export const copilotClient = {
   },
 
   async getEntrypointFeedback() {
-    return withRetry(() => backendClient.call("ide_analytics_v1_ide_analytics_get"));
+    return timed("feedback.metrics", () => withRetry(() => backendClient.call("ide_analytics_v1_ide_analytics_get")));
   },
 
   async sendEntrypointFeedback(payload: IDEFeedbackRequest) {
-    return withRetry(() => maybeRetryCsrf(() => backendClient.call("ide_feedback_v1_ide_feedback_post", { body: payload })));
+    return timed("feedback.submit", () => withRetry(() => maybeRetryCsrf(() => backendClient.call("ide_feedback_v1_ide_feedback_post", { body: payload }))));
   },
 
   toStructuredOutput: normalizeOutput,
+
+  getTelemetrySnapshot() {
+    return copilotTelemetry.getSnapshot();
+  },
 
   toRunSummary(result: Record<string, unknown>, fallbackMode: CopilotMode = "analyze"): CopilotRunSummary {
     return {

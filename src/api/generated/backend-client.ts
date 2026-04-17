@@ -23,8 +23,54 @@ export interface RequestConfig<
   body?: TBody extends never ? never : TBody;
   signal?: AbortSignal;
   headers?: HeadersInit;
+  timeoutMs?: number;
 }
 
+export class ApiHttpError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly method: HttpMethod,
+    public readonly path: string,
+    public readonly url: string,
+    public readonly correlationId?: string,
+    public readonly remediation?: string,
+    public readonly details?: unknown,
+  ) {
+    super(message);
+  }
+}
+
+const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
+
+const remediationByStatus = (status: number): string | undefined => {
+  if (status === 401) return "Sessione scaduta: esegui refresh sessione o login.";
+  if (status === 403) return "Accesso negato: verifica ruolo RBAC o token CSRF.";
+  if (status === 404) return "Endpoint non trovato: verifica API base URL e versione backend.";
+  if (status === 409) return "Conflitto stato risorsa: ricarica i dati e riprova.";
+  if (status === 422) return "Payload non valido: controlla campi obbligatori e formato.";
+  if (status === 429 || status >= 500) return "Servizio temporaneamente degradato: riprova con backoff.";
+  return undefined;
+};
+
+const parseErrorBody = async (response: Response): Promise<unknown> => {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    try {
+      return await response.json();
+    } catch {
+      return undefined;
+    }
+  }
+
+  try {
+    const text = await response.text();
+    return text || undefined;
+  } catch {
+    return undefined;
+  }
+};
 
 export const buildPath = (template: string, pathParams?: JsonObject): string => {
   if (!pathParams) return template;
@@ -90,37 +136,83 @@ async function performRequest<T extends OperationId>(
   const sessionToken = await getValidAccessToken();
   const token = sessionToken ?? manualToken;
   const apiKey = getCopilotApiKey();
+  const correlationId =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `cid-${Date.now()}`;
 
   const buildHeaders = (overrideToken?: string) => ({
     "Content-Type": "application/json",
+    "x-correlation-id": correlationId,
     ...(overrideToken ? { Authorization: `Bearer ${overrideToken}` } : {}),
     ...(apiKey ? { "x-api-key": apiKey } : {}),
     ...config?.headers,
   });
 
-  let response = await fetch(url, {
-    method,
-    credentials: "include",
-    signal: config?.signal,
-    headers: buildHeaders(token ?? undefined),
-    body: config?.body === undefined ? undefined : JSON.stringify(config.body),
-  });
+  const doFetch = async (overrideToken?: string) => {
+    const timeoutMs = config?.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+    const timeoutController = new AbortController();
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      timeoutController.abort();
+    }, timeoutMs);
+
+    if (config?.signal) {
+      if (config.signal.aborted) {
+        timeoutController.abort();
+      } else {
+        config.signal.addEventListener("abort", () => timeoutController.abort(), { once: true });
+      }
+    }
+
+    try {
+      return await fetch(url, {
+        method,
+        credentials: "include",
+        signal: timeoutController.signal,
+        headers: buildHeaders(overrideToken),
+        body: config?.body === undefined ? undefined : JSON.stringify(config.body),
+      });
+    } catch (error) {
+      if (timedOut) {
+        throw new ApiHttpError(
+          `API request timeout (${timeoutMs}ms) for ${method} ${path}`,
+          408,
+          method,
+          path,
+          url,
+          correlationId,
+          "Riduci payload o verifica latenza rete/backend.",
+        );
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+
+  let response = await doFetch(token ?? undefined);
 
   if (response.status === 401) {
     const refreshedToken = await refreshAfterUnauthorized();
     if (refreshedToken) {
-      response = await fetch(url, {
-        method,
-        credentials: "include",
-        signal: config?.signal,
-        headers: buildHeaders(refreshedToken),
-        body: config?.body === undefined ? undefined : JSON.stringify(config.body),
-      });
+      response = await doFetch(refreshedToken);
     }
   }
 
   if (!response.ok) {
-    throw new Error(`API request failed (${response.status}) for ${method} ${path}`);
+    const details = await parseErrorBody(response);
+    throw new ApiHttpError(
+      `API request failed (${response.status}) for ${method} ${path}`,
+      response.status,
+      method,
+      path,
+      url,
+      response.headers.get("x-correlation-id") ?? correlationId,
+      remediationByStatus(response.status),
+      details,
+    );
   }
 
   if (response.status === 204) {

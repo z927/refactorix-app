@@ -26,6 +26,14 @@
 - `refresh token` tentato su `POST /v1/auth/session/refresh` via header `Authorization: Bearer <refreshToken>` con rotation.
 - Fallback refresh cookie-based su stesso endpoint con `credentials: include` (+ `x-csrf-token` se disponibile).
 
+
+## Professional hardening (client)
+
+- `backend-client` ora espone errori tipizzati (`ApiHttpError`) con `status`, `correlationId`, `details` e `remediation` per migliorare troubleshooting UX.
+- Ogni request include `x-correlation-id` client-side e timeout controllato (default 15s).
+- Retry su `401` mantiene refresh sessione automatico, poi ripete una sola volta la request originale.
+- In `/settings` è disponibile un riepilogo di telemetria client-side (latenza media, error-rate, funnel analyze→patch→commit) utile per quality monitoring.
+
 ## API Catalog UI
 
 - Pagina `/api-catalog`: invoca endpoint Existing/Recommended (metodo/path/query/pathParams/body).

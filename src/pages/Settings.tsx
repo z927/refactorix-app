@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { loadCopilotSettings, probeCopilotConnection, saveCopilotSettings } from "@/features/copilot/settings";
 import { bootstrapAuthSession, clearAuthSession, getValidAccessToken, loadAuthSession, refreshAuthSession } from "@/features/copilot/auth-session";
+import { copilotClient } from "@/features/copilot/client";
 
 const Settings = () => {
   const initial = useMemo(() => loadCopilotSettings(), []);
@@ -16,6 +17,7 @@ const Settings = () => {
   const [connectionResult, setConnectionResult] = useState<string>("");
   const [sessionInfo, setSessionInfo] = useState(() => loadAuthSession());
   const [sessionMessage, setSessionMessage] = useState("");
+  const [telemetrySnapshot, setTelemetrySnapshot] = useState(() => copilotClient.getTelemetrySnapshot());
 
   const handleSave = () => {
     const savedSettings = saveCopilotSettings({ apiBaseUrl, apiToken, apiKey, bootstrapRole, bootstrapSubject });
@@ -60,6 +62,7 @@ const Settings = () => {
     ];
 
     setConnectionResult(lines.join("\n"));
+    setTelemetrySnapshot(copilotClient.getTelemetrySnapshot());
     setIsTestingConnection(false);
   };
 
@@ -152,6 +155,28 @@ const Settings = () => {
             <button onClick={handleLogout} className="rounded border border-red-400/30 px-3 py-1.5 text-red-300 hover:bg-red-500/10">Logout locale</button>
           </div>
           {sessionMessage && <div className="mt-2 text-slate-300">{sessionMessage}</div>}
+        </div>
+
+
+        <div className="mt-6 rounded border border-white/10 bg-[#111] p-3 text-xs">
+          <div className="mb-2 flex items-center justify-between font-medium text-slate-200">
+            <span>Copilot Telemetry (client)</span>
+            <button
+              onClick={() => setTelemetrySnapshot(copilotClient.getTelemetrySnapshot())}
+              className="rounded border border-white/15 px-2 py-1 text-[11px] hover:bg-white/10"
+            >
+              Aggiorna
+            </button>
+          </div>
+          <div className="grid gap-1 text-slate-300">
+            <div>Totale chiamate: {telemetrySnapshot.totalCalls}</div>
+            <div>Error rate: {telemetrySnapshot.totalCalls > 0 ? `${Math.round((telemetrySnapshot.failedCalls / telemetrySnapshot.totalCalls) * 100)}%` : "0%"}</div>
+            <div>Latenza media: {Math.round(telemetrySnapshot.averageLatencyMs)} ms</div>
+            <div>
+              Funnel analyze → patch → commit: {telemetrySnapshot.funnel.analyze} → {telemetrySnapshot.funnel.patch_generated} → {telemetrySnapshot.funnel.commit}
+            </div>
+            <div className="text-slate-400">Ultimo aggiornamento: {telemetrySnapshot.updatedAt ? new Date(telemetrySnapshot.updatedAt).toLocaleString() : "n/d"}</div>
+          </div>
         </div>
 
         {connectionResult && (
