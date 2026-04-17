@@ -19,10 +19,10 @@
 ## Token lifecycle automatico
 
 - `apiKey` usata solo per bootstrap iniziale sessione (`/v1/auth/session/token`).
-- Bootstrap prova prima payload JSON `{ role, subject }` e fallback query-string per compatibilità.
+- Bootstrap usa `POST /v1/auth/session/token?role=...&subject=...` con header `x-api-key`.
 - `access token` usato per chiamate API.
 - Refresh automatico proattivo vicino alla scadenza e retry al primo `401`.
-- `refresh token` tentato su `/v1/auth/session/refresh` con fallback bootstrap se disponibile apiKey.
+- `refresh token` tentato su `POST /v1/auth/session/refresh` via header `Authorization: Bearer <refreshToken>` con rotation.
 
 ## API Catalog UI
 

@@ -28,6 +28,16 @@ const parseTokenResponse = (payload: Record<string, unknown>): AuthSession | nul
     (payload.expires_in as number | undefined) ??
     (payload.expiresIn as number | undefined) ??
     undefined;
+  const expiresAtRaw =
+    (payload.expires_at as string | number | undefined) ??
+    (payload.expiresAt as string | number | undefined) ??
+    undefined;
+  const expiresAtFromPayload =
+    typeof expiresAtRaw === "number"
+      ? expiresAtRaw
+      : typeof expiresAtRaw === "string"
+        ? new Date(expiresAtRaw).getTime()
+        : undefined;
 
   return {
     accessToken,
@@ -36,7 +46,7 @@ const parseTokenResponse = (payload: Record<string, unknown>): AuthSession | nul
       (payload.refreshToken as string | undefined) ??
       undefined,
     tokenType: (payload.token_type as string | undefined) ?? "Bearer",
-    expiresAt: expiresIn ? now() + expiresIn * 1000 : undefined,
+    expiresAt: Number.isFinite(expiresAtFromPayload) ? expiresAtFromPayload : expiresIn ? now() + expiresIn * 1000 : undefined,
   };
 };
 
@@ -100,25 +110,6 @@ export const bootstrapAuthSession = async (): Promise<AuthSession | null> => {
   try {
     const payload = await requestWithHeaders(
       settings.apiBaseUrl,
-      "/v1/auth/session/token",
-      {
-        method: "POST",
-        body: JSON.stringify({ role, subject }),
-      },
-      { "x-api-key": settings.apiKey },
-    );
-    const session = parseTokenResponse(payload);
-    if (session) {
-      saveAuthSession(session);
-      return session;
-    }
-  } catch {
-    // fallback query-style contract
-  }
-
-  try {
-    const payload = await requestWithHeaders(
-      settings.apiBaseUrl,
       `/v1/auth/session/token?role=${encodeURIComponent(role)}&subject=${encodeURIComponent(subject)}`,
       { method: "POST" },
       { "x-api-key": settings.apiKey },
@@ -147,12 +138,8 @@ export const refreshAuthSession = async (): Promise<AuthSession | null> => {
         "/v1/auth/session/refresh",
         {
           method: "POST",
-          body: JSON.stringify({
-            refresh_token: current.refreshToken,
-            refreshToken: current.refreshToken,
-          }),
+          headers: { Authorization: `Bearer ${current.refreshToken}` },
         },
-        settings.apiKey ? { "x-api-key": settings.apiKey } : {},
       );
       const refreshed = parseTokenResponse(payload);
       if (refreshed) {
