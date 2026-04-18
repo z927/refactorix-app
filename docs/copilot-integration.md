@@ -42,7 +42,7 @@
   - `GET /v1/system/ollama/status`
   - `GET /v1/system/qdrant/status`
   - `GET /v1/system/temporal/status`
-- `Combo Stack` e `Combo Template` derivano da capability/workflow backend (`GET /v1/ide/actions` + `GET /v1/system/workflow/golden-path`) senza dataset statici locali.
+- `Combo Stack` e `Combo Template` ora usano prima `GET /v1/projects/templates` (`stacks`, `templates_by_stack`, `legacy_aliases`, `allowed_combinations`), con fallback su capability/workflow (`GET /v1/ide/actions` + `GET /v1/system/workflow/golden-path`).
 - `Cambio modello` invoca `POST /v1/system/ollama/select-model` e ricarica lo stato provider.
 
 ## IDE Explorer now API-driven

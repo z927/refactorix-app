@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BuilderHeader } from "@/components/project-builder/BuilderHeader";
 import { BuilderStatusPanel } from "@/components/project-builder/BuilderStatusPanel";
 import { ProjectBuilderForm } from "@/components/project-builder/ProjectBuilderForm";
@@ -11,6 +12,15 @@ const Index = () => {
     templateOptions: runtime.templateOptions,
     modelOptions: runtime.modelOptions,
   });
+
+  const scopedTemplateOptions = runtime.getTemplateOptionsForStack(values.stack);
+
+  useEffect(() => {
+    if (scopedTemplateOptions.length === 0) return;
+    if (!scopedTemplateOptions.includes(values.template)) {
+      actions.setTemplate(scopedTemplateOptions[0]);
+    }
+  }, [actions.setTemplate, scopedTemplateOptions, values.template]);
 
   const handleApplyModel = async () => {
     await runtime.applyModel(values.model);
@@ -36,7 +46,7 @@ const Index = () => {
           values={values}
           actions={actions}
           stackOptions={runtime.stackOptions}
-          templateOptions={runtime.templateOptions}
+          templateOptions={scopedTemplateOptions}
         />
       </section>
     </main>

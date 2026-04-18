@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { backendClient } from "@/api";
 import { getConfiguredApiBaseUrl } from "@/config/runtime-config";
+import { invokeCatalogEndpoint } from "@/features/copilot/catalog-client";
 
 export interface BuilderSystemStatus {
   label: "Ollama" | "Qdrant" | "Temporal";
@@ -12,6 +13,9 @@ export interface BuilderSystemStatus {
 interface BuilderRuntimeState {
   stackOptions: string[];
   templateOptions: string[];
+  templatesByStack: Record<string, string[]>;
+  allowedCombinations: Array<{ stack: string; template: string }>;
+  legacyAliases: Record<string, string>;
   modelOptions: string[];
   providerInfo: string;
   capabilityInfo: string;
@@ -139,6 +143,59 @@ const collectModelOptions = (value: unknown): string[] => {
   return [...options];
 };
 
+export const parseProjectsTemplatesResponse = (payload: unknown) => {
+  const fallback = {
+    stacks: [] as string[],
+    templatesByStack: {} as Record<string, string[]>,
+    legacyAliases: {} as Record<string, string>,
+    allowedCombinations: [] as Array<{ stack: string; template: string }>,
+  };
+
+  if (!isRecord(payload)) return fallback;
+
+  const stacks = Array.isArray(payload.stacks)
+    ? payload.stacks.filter((item): item is string => typeof item === "string")
+    : [];
+
+  const templatesByStack = isRecord(payload.templates_by_stack)
+    ? Object.fromEntries(
+        Object.entries(payload.templates_by_stack).map(([stack, templates]) => [
+          stack,
+          Array.isArray(templates)
+            ? templates.filter((item): item is string => typeof item === "string")
+            : [],
+        ]),
+      )
+    : {};
+
+  const legacyAliases = isRecord(payload.legacy_aliases)
+    ? Object.fromEntries(
+        Object.entries(payload.legacy_aliases)
+          .filter(([, value]) => typeof value === "string")
+          .map(([key, value]) => [key, value as string]),
+      )
+    : {};
+
+  const allowedCombinations = Array.isArray(payload.allowed_combinations)
+    ? payload.allowed_combinations.flatMap((entry) => {
+        if (!isRecord(entry)) return [];
+        const stack = entry.stack;
+        const template = entry.template;
+        if (typeof stack === "string" && typeof template === "string") {
+          return [{ stack, template }];
+        }
+        return [];
+      })
+    : [];
+
+  return {
+    stacks,
+    templatesByStack,
+    legacyAliases,
+    allowedCombinations,
+  };
+};
+
 const isOnlinePayload = (payload: unknown): boolean => {
   if (looksLikeHtml(payload)) return false;
   if (!isRecord(payload)) return false;
@@ -181,6 +238,9 @@ const statusFromResult = (
 const initialState: BuilderRuntimeState = {
   stackOptions: [],
   templateOptions: [],
+  templatesByStack: {},
+  allowedCombinations: [],
+  legacyAliases: {},
   modelOptions: [],
   providerInfo: "Provider info non disponibile",
   capabilityInfo: "Nessuna capability caricata",
@@ -200,28 +260,43 @@ export const useBuilderRuntime = () => {
     setIsLoading(true);
     setError(null);
 
-    const [ollama, qdrant, temporal, actions, workflow] = await Promise.allSettled([
+    const [ollama, qdrant, temporal, actions, workflow, projectTemplates] = await Promise.allSettled([
       backendClient.call("ollama_status_v1_system_ollama_status_get"),
       backendClient.call("qdrant_status_v1_system_qdrant_status_get"),
       backendClient.call("temporal_status_v1_system_temporal_status_get"),
       backendClient.call("ide_actions_v1_ide_actions_get"),
       backendClient.call("workflow_golden_path_v1_system_workflow_golden_path_get"),
+      invokeCatalogEndpoint({ method: "GET", path: "/v1/projects/templates" }),
     ]);
+
+    const parsedTemplates =
+      projectTemplates.status === "fulfilled"
+        ? parseProjectsTemplatesResponse(projectTemplates.value)
+        : parseProjectsTemplatesResponse(undefined);
 
     const modelOptions = ollama.status === "fulfilled" ? collectModelOptions(ollama.value) : [];
 
-    const stackOptions = [
+    const inferredStackOptions = [
       ...(actions.status === "fulfilled" ? collectStringArrays(actions.value, ["stacks", "stack", "languages"]) : []),
       ...(workflow.status === "fulfilled" ? collectStringArrays(workflow.value, ["stacks", "stack", "languages"]) : []),
     ];
 
-    const templateOptions = [
+    const inferredTemplateOptions = [
       ...(actions.status === "fulfilled" ? collectStringArrays(actions.value, ["templates", "template", "blueprints", "starters"]) : []),
       ...(workflow.status === "fulfilled" ? collectStringArrays(workflow.value, ["templates", "template", "blueprints", "starters"]) : []),
     ];
 
-    const uniqueStack = [...new Set(stackOptions)];
-    const uniqueTemplate = [...new Set(templateOptions)];
+    const stackOptions =
+      parsedTemplates.stacks.length > 0
+        ? parsedTemplates.stacks
+        : [...new Set(inferredStackOptions)];
+
+    const templatesFromMap = Object.values(parsedTemplates.templatesByStack).flat();
+
+    const templateOptions =
+      templatesFromMap.length > 0
+        ? [...new Set(templatesFromMap)]
+        : [...new Set(inferredTemplateOptions)];
 
     const systemStatus = [
       statusFromResult("Ollama", ollama),
@@ -230,8 +305,11 @@ export const useBuilderRuntime = () => {
     ];
 
     setState({
-      stackOptions: uniqueStack,
-      templateOptions: uniqueTemplate,
+      stackOptions,
+      templateOptions,
+      templatesByStack: parsedTemplates.templatesByStack,
+      allowedCombinations: parsedTemplates.allowedCombinations,
+      legacyAliases: parsedTemplates.legacyAliases,
       modelOptions,
       providerInfo:
         ollama.status === "fulfilled"
@@ -278,6 +356,24 @@ export const useBuilderRuntime = () => {
     [refresh],
   );
 
+  const getTemplateOptionsForStack = useCallback(
+    (stack: string) => {
+      if (!stack) return state.templateOptions;
+
+      const byStack = state.templatesByStack[stack] ?? [];
+      if (byStack.length > 0) {
+        return byStack;
+      }
+
+      const allowed = state.allowedCombinations
+        .filter((item) => item.stack === stack)
+        .map((item) => item.template);
+
+      return allowed.length > 0 ? [...new Set(allowed)] : state.templateOptions;
+    },
+    [state.templateOptions, state.templatesByStack, state.allowedCombinations],
+  );
+
   return useMemo(
     () => ({
       ...state,
@@ -285,7 +381,8 @@ export const useBuilderRuntime = () => {
       error,
       refresh,
       applyModel,
+      getTemplateOptionsForStack,
     }),
-    [state, isLoading, error, refresh, applyModel],
+    [state, isLoading, error, refresh, applyModel, getTemplateOptionsForStack],
   );
 };
