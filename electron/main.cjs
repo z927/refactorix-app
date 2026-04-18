@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { wireUpdater, checkForUpdates, downloadUpdate, quitAndInstall } = require('./updater.cjs');
 const { handleWindowOpen, shouldOpenExternally, isSameAppOrigin } = require('./navigation.cjs');
@@ -55,6 +55,20 @@ function createWindow() {
 
 app.whenReady().then(() => {
   const mainWindow = createWindow();
+
+
+  ipcMain.handle('workspace:pick-directory', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory', 'createDirectory'],
+      title: 'Seleziona workspace',
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { canceled: true };
+    }
+
+    return { canceled: false, path: result.filePaths[0] };
+  });
 
   ipcMain.handle('updater:check', async () => {
     await checkForUpdates();

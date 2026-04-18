@@ -4,6 +4,7 @@ import { BuilderStatusPanel } from "@/components/project-builder/BuilderStatusPa
 import { ProjectBuilderForm } from "@/components/project-builder/ProjectBuilderForm";
 import { useBuilderRuntime } from "@/hooks/use-builder-runtime";
 import { useProjectBuilderForm } from "@/hooks/use-project-builder-form";
+import { pickWorkspaceDirectory } from "@/features/workspace/picker";
 
 const Index = () => {
   const runtime = useBuilderRuntime();
@@ -21,6 +22,14 @@ const Index = () => {
       actions.setTemplate(scopedTemplateOptions[0]);
     }
   }, [actions.setTemplate, scopedTemplateOptions, values.template]);
+
+
+  const handlePickWorkspace = async () => {
+    const selected = await pickWorkspaceDirectory(values.basePath);
+    if (selected) {
+      actions.setBasePath(selected);
+    }
+  };
 
   const handleApplyModel = async () => {
     await runtime.applyModel(values.model);
@@ -47,6 +56,7 @@ const Index = () => {
           actions={actions}
           stackOptions={runtime.stackOptions}
           templateOptions={scopedTemplateOptions}
+          onPickWorkspace={handlePickWorkspace}
         />
       </section>
     </main>

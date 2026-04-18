@@ -13,6 +13,7 @@ interface ProjectBuilderFormProps {
     initGit: boolean;
     installDeps: boolean;
   };
+  onPickWorkspace: () => void | Promise<void>;
   actions: {
     setProjectName: (value: string) => void;
     setFeatureRequest: (value: string) => void;
@@ -37,7 +38,7 @@ const historyItems = [
   },
 ];
 
-export const ProjectBuilderForm = ({ values, actions, stackOptions, templateOptions }: ProjectBuilderFormProps) => {
+export const ProjectBuilderForm = ({ values, actions, stackOptions, templateOptions, onPickWorkspace }: ProjectBuilderFormProps) => {
   return (
     <section className="mx-auto w-full max-w-3xl space-y-4">
       <form className="rounded-3xl border border-white/10 bg-[#242424]/70 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur">
@@ -86,12 +87,21 @@ export const ProjectBuilderForm = ({ values, actions, stackOptions, templateOpti
             ))}
           </select>
 
-          <input
-            value={values.basePath}
-            onChange={(event) => actions.setBasePath(event.target.value)}
-            placeholder="Base path"
-            className="h-10 min-w-[180px] flex-1 rounded-lg border border-white/10 bg-[#161616] px-3 text-slate-100 outline-none focus:border-blue-400"
-          />
+          <div className="flex min-w-[240px] flex-1 gap-2">
+            <input
+              value={values.basePath}
+              onChange={(event) => actions.setBasePath(event.target.value)}
+              placeholder="Base path"
+              className="h-10 min-w-[180px] flex-1 rounded-lg border border-white/10 bg-[#161616] px-3 text-slate-100 outline-none focus:border-blue-400"
+            />
+            <button
+              type="button"
+              onClick={() => void onPickWorkspace()}
+              className="h-10 rounded-lg border border-white/10 bg-white/[0.03] px-3 text-xs font-medium text-slate-100 transition hover:bg-white/[0.08]"
+            >
+              Scegli cartella
+            </button>
+          </div>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-3">

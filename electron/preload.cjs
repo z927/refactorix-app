@@ -8,6 +8,9 @@ contextBridge.exposeInMainWorld('desktop', {
     chrome: process.versions.chrome,
     node: process.versions.node,
   },
+  workspace: {
+    pickDirectory: () => ipcRenderer.invoke('workspace:pick-directory'),
+  },
   updater: {
     check: () => ipcRenderer.invoke('updater:check'),
     download: () => ipcRenderer.invoke('updater:download'),

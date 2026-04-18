@@ -44,6 +44,7 @@
   - `GET /v1/system/temporal/status`
 - `Combo Stack` e `Combo Template` ora usano prima `GET /v1/projects/templates` (`stacks`, `templates_by_stack`, `legacy_aliases`, `allowed_combinations`), con fallback su capability/workflow (`GET /v1/ide/actions` + `GET /v1/system/workflow/golden-path`).
 - `Cambio modello` invoca `POST /v1/system/ollama/select-model` e ricarica lo stato provider.
+- Workspace custom: da Home Builder puoi usare `Scegli cartella`; in Electron apre il picker nativo, in web fallback su inserimento path manuale.
 
 ## IDE Explorer now API-driven
 
