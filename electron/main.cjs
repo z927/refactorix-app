@@ -1,4 +1,5 @@
 const { app, BrowserWindow, shell, ipcMain, dialog } = require('electron');
+const fs = require('fs/promises');
 const path = require('path');
 const { wireUpdater, checkForUpdates, downloadUpdate, quitAndInstall } = require('./updater.cjs');
 const { handleWindowOpen, shouldOpenExternally, isSameAppOrigin } = require('./navigation.cjs');
@@ -68,6 +69,66 @@ app.whenReady().then(() => {
     }
 
     return { canceled: false, path: result.filePaths[0] };
+  });
+
+
+  ipcMain.handle('workspace:list-tree', async (_event, payload) => {
+    const rootPath = payload?.path;
+    const maxDepth = Math.max(1, Math.min(Number(payload?.depth ?? 5), 8));
+
+    if (!rootPath || typeof rootPath !== 'string') {
+      return { tree: [] };
+    }
+
+    const walk = async (currentPath, depth) => {
+      const entries = await fs.readdir(currentPath, { withFileTypes: true });
+      const sorted = [...entries].sort((a, b) => a.name.localeCompare(b.name));
+
+      return Promise.all(sorted.map(async (entry) => {
+        const fullPath = path.join(currentPath, entry.name);
+
+        if (entry.isDirectory()) {
+          const children = depth < maxDepth ? await walk(fullPath, depth + 1) : [];
+          return {
+            name: entry.name,
+            type: 'folder',
+            fullPath,
+            children,
+          };
+        }
+
+        return {
+          name: entry.name,
+          type: 'file',
+          fullPath,
+        };
+      }));
+    };
+
+    const tree = await walk(rootPath, 1);
+    return { tree };
+  });
+
+  ipcMain.handle('workspace:read-file', async (_event, payload) => {
+    const targetPath = payload?.path;
+    if (!targetPath || typeof targetPath !== 'string') {
+      return { content: '' };
+    }
+
+    const content = await fs.readFile(targetPath, 'utf8');
+    return { content };
+  });
+
+  ipcMain.handle('workspace:write-file', async (_event, payload) => {
+    const targetPath = payload?.path;
+    const content = payload?.content;
+
+    if (!targetPath || typeof targetPath !== 'string') {
+      return { ok: false };
+    }
+
+    await fs.writeFile(targetPath, typeof content === 'string' ? content : '', 'utf8');
+    return { ok: true };
   });
 
   ipcMain.handle('updater:check', async () => {

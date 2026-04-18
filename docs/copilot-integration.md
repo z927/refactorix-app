@@ -61,6 +61,18 @@
 - I percorsi progetto vengono letti da `GET /v1/projects/discovery`.
 - L'albero file viene caricato da `GET /v1/projects/tree?project_path=...&depth=...` e normalizzato lato client per supportare shape response diverse del backend.
 
+
+## Local workspace manager workflow
+
+- Workflow professionale supportato in UI:
+  1. create remote (`POST /v1/projects/create`)
+  2. generate remote (`POST /v1/projects/generate`)
+  3. open project in `ProjectViewer` (mode `Local desktop` o `Remote API`)
+- In desktop mode il viewer usa filesystem locale tramite bridge Electron:
+  - list tree
+  - read file
+  - edit + save file locale
+
 ## API Catalog UI
 
 - Pagina `/api-catalog`: invoca endpoint Existing/Recommended (metodo/path/query/pathParams/body).

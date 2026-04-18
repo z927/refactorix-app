@@ -7,6 +7,7 @@ export interface FileNode {
   children?: FileNode[];
   content?: string;
   language?: string;
+  fullPath?: string;
 }
 
 interface FileTreeProps {
@@ -29,7 +30,7 @@ const FileTreeItem = ({
   selectedPath?: string;
 }) => {
   const [isOpen, setIsOpen] = useState(depth < 1);
-  const currentPath = `${path}/${node.name}`;
+  const currentPath = node.fullPath ?? `${path}/${node.name}`;
   const isSelected = selectedPath === currentPath;
 
   const getFileIcon = (name: string) => {

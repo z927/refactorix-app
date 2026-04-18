@@ -10,6 +10,9 @@ contextBridge.exposeInMainWorld('desktop', {
   },
   workspace: {
     pickDirectory: () => ipcRenderer.invoke('workspace:pick-directory'),
+    listTree: (path, depth) => ipcRenderer.invoke('workspace:list-tree', { path, depth }),
+    readFile: (path) => ipcRenderer.invoke('workspace:read-file', { path }),
+    writeFile: (path, content) => ipcRenderer.invoke('workspace:write-file', { path, content }),
   },
   updater: {
     check: () => ipcRenderer.invoke('updater:check'),
