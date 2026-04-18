@@ -39,8 +39,36 @@ export const humanizeServiceDetail = (payload: unknown): string => {
   }
 
   if (isRecord(payload)) {
-    const message = payload.message ?? payload.detail ?? payload.error ?? payload.status;
+    const message = payload.message ?? payload.detail ?? payload.error;
     if (typeof message === "string") return compact(message);
+
+    const connected = payload.connected;
+    const state = payload.state;
+    const selectedModel = payload.selected_model ?? payload.model;
+    const endpoint = payload.base_url ?? payload.qdrant_url ?? payload.backend ?? payload.endpoint;
+
+    const parts: string[] = [];
+    if (typeof connected === "boolean") {
+      parts.push(connected ? "Connesso" : "Disconnesso");
+    }
+    if (typeof state === "string") {
+      parts.push(`state=${state}`);
+    }
+    if (typeof selectedModel === "string") {
+      parts.push(`model=${selectedModel}`);
+    }
+    if (typeof endpoint === "string") {
+      parts.push(`endpoint=${endpoint}`);
+    }
+
+    if (parts.length > 0) {
+      return compact(parts.join(" · "));
+    }
+
+    if (typeof payload.status === "string") {
+      return compact(`status=${payload.status}`);
+    }
+
     return compact(JSON.stringify(payload));
   }
 
@@ -119,7 +147,9 @@ const isOnlinePayload = (payload: unknown): boolean => {
     payload.ok === true ||
     payload.status === "ok" ||
     payload.status === "online" ||
-    payload.healthy === true
+    payload.healthy === true ||
+    payload.connected === true ||
+    payload.state === "healthy"
   );
 };
 
