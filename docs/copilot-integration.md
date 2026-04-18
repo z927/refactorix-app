@@ -35,6 +35,16 @@
 - In `/settings` è disponibile un riepilogo di telemetria client-side (latenza media, error-rate, funnel analyze→patch→commit) utile per quality monitoring.
 
 
+
+## Home Builder runtime (API reali)
+
+- `System status` in home page ora usa endpoint reali:
+  - `GET /v1/system/ollama/status`
+  - `GET /v1/system/qdrant/status`
+  - `GET /v1/system/temporal/status`
+- `Combo Stack` e `Combo Template` derivano da capability/workflow backend (`GET /v1/ide/actions` + `GET /v1/system/workflow/golden-path`) senza dataset statici locali.
+- `Cambio modello` invoca `POST /v1/system/ollama/select-model` e ricarica lo stato provider.
+
 ## IDE Explorer now API-driven
 
 - `ProjectViewer` non usa più dataset cablati (`sampleFiles`).
